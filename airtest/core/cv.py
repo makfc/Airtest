@@ -82,6 +82,34 @@ def loop_find(query, timeout=ST.FIND_TIMEOUT, threshold=None, interval=0.5, inte
             time.sleep(interval)
 
 
+def loop_find_any(query_list, timeout=ST.FIND_TIMEOUT, threshold=None, interval=0.5, intervalfunc=None):
+    G.LOGGING.info("Try finding: %s", query_list)
+    start_time = time.time()
+    while True:
+        screen = G.DEVICE.snapshot(filename=None, quality=ST.SNAPSHOT_QUALITY)
+
+        if screen is None:
+            G.LOGGING.warning("Screen is None, may be locked")
+        else:
+            for query in query_list:
+                if threshold:
+                    query.threshold = threshold
+                match_pos = query.match_in(screen)
+                if match_pos:
+                    try_log_screen(screen)
+                    return match_pos
+
+        if intervalfunc is not None:
+            intervalfunc()
+
+        # 超时则raise，未超时则进行下次循环:
+        if (time.time() - start_time) > timeout:
+            try_log_screen(screen)
+            raise TargetNotFoundError('Picture %s not found in screen' % query_list)
+        else:
+            time.sleep(interval)
+
+
 @logwrap
 def try_log_screen(screen=None, quality=None, max_size=None):
     """

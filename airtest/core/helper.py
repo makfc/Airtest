@@ -87,7 +87,7 @@ def set_logdir(dirpath):
     G.LOGGER.set_logfile(os.path.join(ST.LOG_DIR, ST.LOG_FILE))
 
 
-def log(arg, timestamp=None, desc="", snapshot=False):
+def log(arg, timestamp=None, desc="", snapshot=False, screen=None):
     """
     Insert user log, will be displayed in Html report.
 
@@ -96,6 +96,7 @@ def log(arg, timestamp=None, desc="", snapshot=False):
         timestamp: the timestamp of the log, default is time.time()
         desc: description of log, default is arg.class.__name__
         snapshot: whether to take a screenshot, default is False
+        screen: screenshot to be saved, default is None
 
     Returns:
         None
@@ -112,12 +113,12 @@ def log(arg, timestamp=None, desc="", snapshot=False):
     from airtest.core.cv import try_log_screen
     if G.LOGGER:
         depth = 0
-        if snapshot:
+        if snapshot or screen is not None:
             # 如果指定了snapshot参数，强制保存一张图片
             save_image = ST.SAVE_IMAGE
             ST.SAVE_IMAGE = True
             try:
-                try_log_screen(depth=2)
+                try_log_screen(screen, depth=2)
             except AttributeError:
                 # if G.DEVICE is None
                 pass

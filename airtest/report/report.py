@@ -192,7 +192,7 @@ class LogToHtml(object):
                 screen['confidence'] = cv_result['confidence']
                 break
 
-        if step["data"]["name"] in ["touch", "assert_exists", "wait", "exists"]:
+        if step["data"]["name"] in ["touch", "assert_exists", "wait", "exists", "exists_text"]:
             # 将图像匹配得到的pos修正为最终pos
             if self.is_pos(step["data"].get("ret")):
                 display_pos = step["data"]["ret"]
@@ -319,6 +319,7 @@ class LogToHtml(object):
             "swipe": u"滑动操作",
             "wait": u"等待目标图片出现",
             "exists": lambda: u"图片%s存在" % ("" if res else u"不"),
+            "exists_text": lambda: u"文字%s存在" % ("" if res else u"不"),
             "text": lambda: u"输入文字:%s" % args.get('text'),
             "keyevent": lambda: u"点击[%s]按键" % args.get('keyname'),
             "sleep": lambda: u"等待%s秒" % args.get('secs'),

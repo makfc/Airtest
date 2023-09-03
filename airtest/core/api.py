@@ -4,10 +4,13 @@ This module contains the Airtest Core APIs.
 """
 import os
 import time
+import easyocr
+
+reader = easyocr.Reader(['ch_tra', 'en'])  # this needs to run only once to load the model into memory
 
 from six.moves.urllib.parse import parse_qsl, urlparse
 
-from airtest.core.cv import Template, loop_find, try_log_screen
+from airtest.core.cv import Template, loop_find, loop_find_any, try_log_screen
 from airtest.core.error import TargetNotFoundError
 from airtest.core.settings import Settings as ST
 from airtest.utils.compat import script_log_dir
@@ -19,6 +22,15 @@ from airtest.core.assertions import (assert_exists, assert_not_exists, assert_eq
                                         assert_is_none, assert_is_not_none, assert_in, assert_not_in,
                                         assert_is_instance, assert_not_is_instance
                                      )
+from pyxtension.streams import stream
+
+
+class SafeList(list):
+    def get(self, index, default=None):
+        try:
+            return self.__getitem__(index)
+        except IndexError:
+            return default
 
 
 """
@@ -614,6 +626,13 @@ def wait(v, timeout=None, interval=0.5, intervalfunc=None):
 
 
 @logwrap
+def wait_any(v_list=[], timeout=None, interval=0.5, intervalfunc=None):
+    timeout = timeout or ST.FIND_TIMEOUT
+    pos = loop_find_any(v_list, timeout=timeout, interval=interval, intervalfunc=intervalfunc)
+    return pos
+
+
+@logwrap
 def exists(v):
     """
     Check whether given target exists on device screen
@@ -639,6 +658,50 @@ def exists(v):
         return False
     else:
         return pos
+
+
+def get_target_rectangle(left_top_pos, w, h):
+    """根据左上角点和宽高求出目标区域."""
+    x_min, y_min = left_top_pos
+    # 中心位置的坐标:
+    x_middle, y_middle = int(x_min + w / 2), int(y_min + h / 2)
+    # 左下(min,max)->右下(max,max)->右上(max,min)
+    left_bottom_pos, right_bottom_pos = (x_min, y_min + h), (x_min + w, y_min + h)
+    right_top_pos = (x_min + w, y_min)
+    # 点击位置:
+    middle_point = (x_middle, y_middle)
+    # 识别目标区域: 点序:左上->左下->右下->右上, 左上(min,min)右下(max,max)
+    rectangle = (left_top_pos, left_bottom_pos, right_bottom_pos, right_top_pos)
+
+    return middle_point, rectangle
+
+
+def touch_text(v):
+    if pos := exists_text(v):
+        touch(pos)
+    return pos
+
+
+@logwrap
+def exists_text(v):
+    G.LOGGING.info("find_text: %s", v)
+    screen = G.DEVICE.snapshot(filename=None, quality=ST.SNAPSHOT_QUALITY)
+    st = time.time()
+    result = reader.readtext(screen, batch_size=50)
+    elapsed_time = time.time() - st
+    G.LOGGING.info(f'reader.readtext execution time: {elapsed_time}seconds')
+    log(result, desc="readtext result", screen=screen)
+    element = SafeList(stream(result).filter(lambda i: v in i[1].strip()).toList()).get(0)
+    if not element:
+        G.LOGGING.info("find_text element not found")
+        return
+    rect = element[0]
+    w = rect[1][0] - rect[0][0]
+    h = rect[2][1] - rect[1][1]
+    pos = get_target_rectangle(rect[0], w, h)[0]
+    G.LOGGING.info("find_text pos: %s", pos)
+    try_log_screen(screen)
+    return pos
 
 
 @logwrap
