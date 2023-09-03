@@ -37,6 +37,55 @@ MATCHING_METHODS = {
 
 
 @logwrap
+def loop_until_not_find(query, timeout=ST.FIND_TIMEOUT, threshold=None, interval=0.5, intervalfunc=None):
+    """
+    Search for image template in the screen until timeout or not find
+
+    Args:
+        query: image template to be found in screenshot
+        timeout: time interval how long to look for the image template
+        threshold: default is None
+        interval: sleep interval before next attempt to find the image template
+        intervalfunc: function that is executed after unsuccessful attempt to find the image template
+
+    Raises:
+        TargetNotFoundError: when image template is not found in screenshot
+
+    Returns:
+        TargetNotFoundError if image template not found, otherwise returns the position where the image template has
+        been found in screenshot
+
+    """
+    last_match_pos = None
+    G.LOGGING.info("Try finding: %s", query)
+    start_time = time.time()
+    while True:
+        screen = G.DEVICE.snapshot(filename=None, quality=ST.SNAPSHOT_QUALITY)
+
+        if screen is None:
+            G.LOGGING.warning("Screen is None, may be locked")
+        else:
+            if threshold:
+                query.threshold = threshold
+            match_pos = query.match_in(screen)
+            if match_pos is None:
+                try_log_screen(screen)
+                return last_match_pos
+            else:
+                last_match_pos = match_pos
+
+        if intervalfunc is not None:
+            intervalfunc()
+
+        # 超时则raise，未超时则进行下次循环:
+        if (time.time() - start_time) > timeout:
+            try_log_screen(screen)
+            raise TargetNotFoundError('Picture %s wait for gone in screen timeout' % query)
+        else:
+            time.sleep(interval)
+
+
+@logwrap
 def loop_find(query, timeout=ST.FIND_TIMEOUT, threshold=None, interval=0.5, intervalfunc=None):
     """
     Search for image template in the screen until timeout

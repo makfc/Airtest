@@ -4,13 +4,13 @@ This module contains the Airtest Core APIs.
 """
 import os
 import time
-import easyocr
+# import easyocr
 
-reader = easyocr.Reader(['ch_tra', 'en'])  # this needs to run only once to load the model into memory
+# reader = easyocr.Reader(['ch_tra', 'en'])  # this needs to run only once to load the model into memory
 
 from six.moves.urllib.parse import parse_qsl, urlparse
 
-from airtest.core.cv import Template, loop_find, loop_find_any, try_log_screen
+from airtest.core.cv import Template, loop_find, loop_find_any, loop_until_not_find, try_log_screen
 from airtest.core.error import TargetNotFoundError
 from airtest.core.settings import Settings as ST
 from airtest.utils.compat import script_log_dir
@@ -593,6 +593,36 @@ def sleep(secs=1.0):
         >>> sleep(1)
     """
     time.sleep(secs)
+
+
+@logwrap
+def wait_gone(v, timeout=None, interval=0.5, intervalfunc=None):
+    """
+    Wait to not match the Template on the device screen
+
+    :param v: target object to wait for, Template instance
+    :param timeout: time interval to wait for the match, default is None which is ``ST.FIND_TIMEOUT``
+    :param interval: time interval in seconds to attempt to find a match
+    :param intervalfunc: called after each unsuccessful attempt to find the corresponding match
+    :raise TargetNotFoundError: raised if target is not found after the time limit expired
+    :return: coordinates of the matched target
+    :platforms: Android, Windows, iOS
+    :Example:
+
+        >>> wait(Template(r"tpl1606821804906.png"))  # timeout after ST.FIND_TIMEOUT
+        >>> # find Template every 3 seconds, timeout after 120 seconds
+        >>> wait(Template(r"tpl1606821804906.png"), timeout=120, interval=3)
+
+        You can specify a callback function every time the search target fails::
+
+        >>> def notfound():
+        >>>     print("No target found")
+        >>> wait(Template(r"tpl1607510661400.png"), intervalfunc=notfound)
+
+    """
+    timeout = timeout or ST.FIND_TIMEOUT
+    last_match_pos = loop_until_not_find(v, timeout=timeout, interval=interval, intervalfunc=intervalfunc)
+    return last_match_pos
 
 
 @logwrap
