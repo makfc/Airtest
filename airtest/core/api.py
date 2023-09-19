@@ -390,6 +390,48 @@ click = touch  # click is alias of touch
 
 
 @logwrap
+def wait_present_and_touch_until_gone(template, interval=0.5, intervalfunc=None):
+    """
+    Prevent template button from appearing on screen but not ready for touch due to incomplete page transition animation
+
+    Wait template button from appearing on screen, then touch the button until it's gone
+    """
+    wait(template, timeout=None, interval=interval, intervalfunc=intervalfunc)
+    start_time = time.time()
+    while True:
+        pos = exists(template)
+        if not pos:
+            return
+        touch(pos)
+        if (time.time() - start_time) > ST.FIND_TIMEOUT:
+            try_log_screen()
+            raise TargetNotFoundError('Picture %s not found in screen' % template)
+        else:
+            time.sleep(interval)
+
+
+@logwrap
+def wait_any_present_and_touch_until_gone(v_list=[], interval=0.5, intervalfunc=None):
+    """
+    Prevent template button from appearing on screen but not ready for touch due to incomplete page transition animation
+
+    Wait template button from appearing on screen, then touch the button until it's gone
+    """
+    wait_any(v_list, timeout=None, interval=interval, intervalfunc=intervalfunc)
+    start_time = time.time()
+    while True:
+        pos = exists_any(v_list)
+        if not pos:
+            return
+        touch(pos)
+        if (time.time() - start_time) > ST.FIND_TIMEOUT:
+            try_log_screen()
+            raise TargetNotFoundError('Picture %s not found in screen' % v_list)
+        else:
+            time.sleep(interval)
+
+
+@logwrap
 def double_click(v):
     """
     Perform double click
@@ -470,6 +512,26 @@ def swipe(v1, v2=None, vector=None, **kwargs):
     G.DEVICE.swipe(pos1, pos2, **kwargs)
     delay_after_operation()
     return pos1, pos2
+
+
+def swipe_up():
+    swipe_y(0.9, 0.6)
+
+
+def swipe_down():
+    swipe_y(0.6, 0.9)
+
+
+def swipe_y(start_y, end_y):
+    # 获取设备的高度和宽度
+    width, height = device().get_current_resolution()
+    # 校准滑动的起点和终点
+    start_pt = (width / 2, height * start_y)
+    end_pt = (width / 2, height * end_y)
+    # 滑动1次:
+    for i in range(1):
+        swipe(start_pt, end_pt, vector=None, duration=0.1)
+        sleep(1)  # 等待设备的响应
 
 
 @logwrap
@@ -660,6 +722,16 @@ def wait_any(v_list=[], timeout=None, interval=0.5, intervalfunc=None):
     timeout = timeout or ST.FIND_TIMEOUT
     pos = loop_find_any(v_list, timeout=timeout, interval=interval, intervalfunc=intervalfunc)
     return pos
+
+
+@logwrap
+def exists_any(v_list):
+    try:
+        pos = loop_find_any(v_list, timeout=0)
+    except TargetNotFoundError:
+        return False
+    else:
+        return pos
 
 
 @logwrap
