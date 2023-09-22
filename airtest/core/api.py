@@ -515,11 +515,11 @@ def swipe(v1, v2=None, vector=None, **kwargs):
 
 
 def swipe_up():
-    swipe_y(0.9, 0.6)
+    swipe_y(0.9, 0.8)
 
 
 def swipe_down():
-    swipe_y(0.6, 0.9)
+    swipe_y(0.3, 0.9)
 
 
 def swipe_y(start_y, end_y):
@@ -530,8 +530,9 @@ def swipe_y(start_y, end_y):
     end_pt = (width / 2, height * end_y)
     # 滑动1次:
     for i in range(1):
-        swipe(start_pt, end_pt, vector=None, duration=0.1)
-        sleep(1)  # 等待设备的响应
+        swipe(start_pt, end_pt, vector=None, delay=0.1)
+        sleep(0.2)
+        double_click([0.5, 0.5])
 
 
 @logwrap
