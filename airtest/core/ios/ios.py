@@ -263,6 +263,8 @@ class IOS(Device):
 
     def __init__(self, addr=DEFAULT_ADDR, cap_method=CAP_METHOD.MJPEG, mjpeg_port=None, udid=None, uuid=None, serialno=None, wda_bundle_id=None):
         super(IOS, self).__init__()
+        import importlib
+        importlib.reload(wda)
 
         # If none or empty, use default addr.
         self.addr = addr or DEFAULT_ADDR
