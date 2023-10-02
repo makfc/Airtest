@@ -396,16 +396,20 @@ def wait_present_and_touch_until_gone(template, interval=0.5, intervalfunc=None)
 
     Wait template button from appearing on screen, then touch the button until it's gone
     """
-    wait(template, timeout=None, interval=interval, intervalfunc=intervalfunc)
+    pos = wait(template, timeout=None, interval=interval, intervalfunc=intervalfunc)
+    touch(pos)
     start_time = time.time()
     while True:
         pos = exists(template)
         if not pos:
+            print(f"touch until gone, if not pos: {template}")
             return
+        print(f"touch until gone, touch(pos): {pos}")
+        print(f"ST.FIND_TIMEOUT: {ST.FIND_TIMEOUT}")
         touch(pos)
         if (time.time() - start_time) > ST.FIND_TIMEOUT:
             try_log_screen()
-            raise TargetNotFoundError('Picture %s not found in screen' % template)
+            raise TargetNotFoundError('Picture %s found in screen' % template)
         else:
             time.sleep(interval)
 
@@ -423,6 +427,9 @@ def wait_any_present_and_touch_until_gone(v_list=[], interval=0.5, intervalfunc=
         pos = exists_any(v_list)
         if not pos:
             return
+        if intervalfunc is not None:
+            intervalfunc()
+
         touch(pos)
         if (time.time() - start_time) > ST.FIND_TIMEOUT:
             try_log_screen()
@@ -531,7 +538,7 @@ def swipe_y(start_y, end_y):
     # 滑动1次:
     for i in range(1):
         swipe(start_pt, end_pt, vector=None, delay=0.1)
-        sleep(0.2)
+        sleep(0.25)
         double_click([0.5, 0.5])
 
 
@@ -756,7 +763,7 @@ def exists(v):
 
     """
     try:
-        pos = loop_find(v, timeout=ST.FIND_TIMEOUT_TMP)
+        pos = loop_find(v, timeout=0)
     except TargetNotFoundError:
         return False
     else:
