@@ -400,6 +400,8 @@ def wait_present_and_touch_until_gone(template, interval=0.5, intervalfunc=None)
     touch(pos)
     start_time = time.time()
     while True:
+        if intervalfunc is not None:
+            intervalfunc()
         pos = exists(template)
         if not pos:
             print(f"touch until gone, if not pos: {template}")
